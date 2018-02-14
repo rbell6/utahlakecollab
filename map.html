@@ -15,12 +15,21 @@ function initMap() {
 			icon: opts.icon
 		});
 		map.setCenter(position);
+		google.maps.event.addListener(marker, 'click', (event) => {
+			const response = confirm(`Do you want to sample ${opts.siteName}`);
+			if (response) {
+				alert('it worked')
+			} else {
+				alert('we said no');
+			}
+		});
 	}
 
 	function getTableRows() {
 		fetch('https://www.googleapis.com/fusiontables/v2/query?sql=SELECT * FROM 1X6rLhpuJTm1mxwGxAMCSjVM1L5oftBdp3Y_tXj8s&key=AIzaSyCmLhRF__ZehY_l0sqTyuaCJK10SUtFBQw').then(response => response.json()).then(data => {
 			console.log('data', data)
 			data.rows.forEach(row => {
+				const siteName = row[0];
 				const lat = row[10];
 				const lng = row[11];
 				const visitPlanned = row[13];
@@ -32,7 +41,8 @@ function initMap() {
 						fillOpacity: 1,
 						strokeColor: visitPlanned === 'yes' ? 'green' : 'red',
 						strokeWeight: 1
-					}
+					},
+					siteName
 				});
 			});
 		});
