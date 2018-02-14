@@ -9,20 +9,19 @@ function initMap() {
 	});
 	
 	function placeMarker(position, opts) {
-		marker = new google.maps.Marker({
+		const marker = new google.maps.Marker({
 			map,
 			position, 
-			icon: opts.icon
+			icon: opts.icon,
+			title: opts.siteName
 		});
 		map.setCenter(position);
-		google.maps.event.addListener(marker, 'click', (event) => {
-			const response = confirm(`Do you want to sample ${opts.siteName}`);
-			if (response) {
-				alert('it worked')
-			} else {
-				alert('we said no');
-			}
+		const infowindow = new google.maps.InfoWindow({content: opts.info});
+
+		marker.addListener('click', (event) => {
+			infowindow.open(map, marker);
 		});
+		markers.push(marker);
 	}
 
 	function getTableRows() {
@@ -42,13 +41,25 @@ function initMap() {
 						strokeColor: visitPlanned === 'yes' ? 'green' : 'red',
 						strokeWeight: 1
 					},
-					siteName
+					siteName,
+					info: `
+						<b>${siteName}</b>
+						Do you want to sample this site? <br />
+						<button onclick="console.log('yes!')">Yes</button> <button onclick="console.log('no!')">No</button>
+					`
 				});
 			});
 		});
 	}
 
 	getTableRows();
+}
+
+function planVisitWithContact(siteId, contact) {
+	const sql = `
+		UPDATE 1X6rLhpuJTm1mxwGxAMCSjVM1L5oftBdp3Y_tXj8s SET 'Visit Planned' = 'yes' WHERE 'UWW Site ID' = 'HOC-02-S'
+	`;
+	fetch('');
 }
 </script>
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmLhRF__ZehY_l0sqTyuaCJK10SUtFBQw&callback=initMap"></script>
