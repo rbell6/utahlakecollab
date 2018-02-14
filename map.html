@@ -1,0 +1,44 @@
+<div id="map" style="height: 500px"></div>
+<script>
+function initMap() {
+	let markers = [];
+	let centerCoords = {lat: 40.244910, lng: -111.649328};
+	const map = new google.maps.Map(document.getElementById('map'), {
+		center: centerCoords,
+		zoom: 9
+	});
+	
+	function placeMarker(position, opts) {
+		marker = new google.maps.Marker({
+			map,
+			position, 
+			icon: opts.icon
+		});
+		map.setCenter(position);
+	}
+
+	function getTableRows() {
+		fetch('https://www.googleapis.com/fusiontables/v2/query?sql=SELECT * FROM 1X6rLhpuJTm1mxwGxAMCSjVM1L5oftBdp3Y_tXj8s&key=AIzaSyCmLhRF__ZehY_l0sqTyuaCJK10SUtFBQw').then(response => response.json()).then(data => {
+			console.log('data', data)
+			data.rows.forEach(row => {
+				const lat = row[10];
+				const lng = row[11];
+				const visitPlanned = row[13];
+				placeMarker({lat, lng}, {
+					icon: {
+						path: google.maps.SymbolPath.CIRCLE,
+						scale: 4,
+						fillColor: visitPlanned === 'yes' ? 'green' : 'red',
+						fillOpacity: 1,
+						strokeColor: visitPlanned === 'yes' ? 'green' : 'red',
+						strokeWeight: 1
+					}
+				});
+			});
+		});
+	}
+
+	getTableRows();
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmLhRF__ZehY_l0sqTyuaCJK10SUtFBQw&callback=initMap"></script>
