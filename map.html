@@ -3,6 +3,15 @@
 function initMap() {
 	let markers = [];
 	let centerCoords = {lat: 40.244910, lng: -111.649328};
+	let data;
+	const iconDefaults = {
+		path: google.maps.SymbolPath.CIRCLE,
+		scale: 5,
+		fillColor: 'red',
+		fillOpacity: 1,
+		strokeColor: 'red',
+		strokeWeight: 1
+	}
 	const map = new google.maps.Map(document.getElementById('map'), {
 		center: centerCoords,
 		zoom: 9
@@ -13,53 +22,93 @@ function initMap() {
 			map,
 			position, 
 			icon: opts.icon,
-			title: opts.siteName
+			title: opts.title
 		});
 		map.setCenter(position);
-		const infowindow = new google.maps.InfoWindow({content: opts.info});
+		const infoWindow = new google.maps.InfoWindow({content: opts.info});
 
 		marker.addListener('click', (event) => {
-			infowindow.open(map, marker);
+			infoWindow.open(map, marker);
+			marker.infoWindow = infoWindow;
 		});
 		markers.push(marker);
 	}
 
-	function getTableRows() {
-		fetch('https://www.googleapis.com/fusiontables/v2/query?sql=SELECT * FROM 1X6rLhpuJTm1mxwGxAMCSjVM1L5oftBdp3Y_tXj8s&key=AIzaSyCmLhRF__ZehY_l0sqTyuaCJK10SUtFBQw').then(response => response.json()).then(data => {
-			console.log('data', data)
-			data.rows.forEach(row => {
-				const siteName = row[0];
-				const lat = row[10];
-				const lng = row[11];
-				const visitPlanned = row[13];
-				placeMarker({lat, lng}, {
-					icon: {
-						path: google.maps.SymbolPath.CIRCLE,
-						scale: 4,
-						fillColor: visitPlanned === 'yes' ? 'green' : 'red',
-						fillOpacity: 1,
-						strokeColor: visitPlanned === 'yes' ? 'green' : 'red',
-						strokeWeight: 1
-					},
-					siteName,
-					info: `
-						<b>${siteName}</b>
-						Do you want to sample this site? <br />
-						<button onclick="console.log('yes!')">Yes</button> <button onclick="console.log('no!')">No</button>
-					`
-				});
+	function getSites() {
+		return new Promise(resolve => {
+			firebase.database().ref('/sites').once('value').then(snapshot => {
+				data = snapshot.val();
+				resolve(data);
 			});
 		});
 	}
 
-	getTableRows();
+	window.planSiteVisit = (id) => {
+		const site = data[id];
+		const name = document.getElementById('input-name').value;
+		const email = document.getElementById('input-email').value;
+		document.getElementById('input-name').value = '';
+		document.getElementById('input-email').value = '';
+		site.Name = name;
+		site.Email = email;
+		site['Visit Planned'] = true;
+		firebase.database().ref('/sites/' + id).set(site);
+		markers[id].setIcon({
+			...iconDefaults,
+			fillColor: 'green',
+			strokeColor: 'green'
+		});
+		markers[id].infoWindow.close();
+	}
+
+	window.cancel = (id) => {
+		debugger
+		markers[id].infoWindow.close();
+	}
+
+	function _initFirebase() {
+		const config = {
+			apiKey: "AIzaSyBYCKReSXbPfM3YjhMuCNSE_MSXIk9KV_I",
+			authDomain: "utahlakecollab-195204.firebaseapp.com",
+			databaseURL: "https://utahlakecollab-195204.firebaseio.com",
+			projectId: "utahlakecollab-195204",
+			storageBucket: "",
+			messagingSenderId: "519016451118"
+		};
+		firebase.initializeApp(config);
+	}
+	_initFirebase();
+	getSites().then(sites => {
+		Object.keys(sites).forEach(id => {
+			const site = data[id];
+			const siteName = site['Site Name'];
+			const visitPlanned = site['Visit Planned'];
+			placeMarker({
+				lat: parseFloat(site.Latitude), 
+				lng: parseFloat(site.Longitude)
+			}, {
+				id,
+				title: siteName,
+				icon: {
+					...iconDefaults,
+					fillColor: visitPlanned ? 'green' : 'red',
+					strokeColor: visitPlanned ? 'green' : 'red'
+				},
+				info: visitPlanned ? `
+					<b>${siteName}</b><br />
+					Site is already scheduled for sampling.
+				` : `
+					<b>${siteName}</b>
+					Do you want to sample this site? <br />
+					<input placeholder="Name" id="input-name" /><br />
+					<input placeholder="Email" id="input-email" /><br />
+					<button onclick="planSiteVisit(${id})">Yes</button> <button onclick="cancel(${id})">No</button>
+				`
+			});
+		});
+	});
 }
 
-function planVisitWithContact(siteId, contact) {
-	const sql = `
-		UPDATE 1X6rLhpuJTm1mxwGxAMCSjVM1L5oftBdp3Y_tXj8s SET 'Visit Planned' = 'yes' WHERE 'UWW Site ID' = 'HOC-02-S'
-	`;
-	fetch('');
-}
 </script>
+<script src="https://www.gstatic.com/firebasejs/4.9.1/firebase.js"></script>
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmLhRF__ZehY_l0sqTyuaCJK10SUtFBQw&callback=initMap"></script>
